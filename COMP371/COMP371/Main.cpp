@@ -16,6 +16,8 @@
 
 #include "Camera.h"
 #include "Shader.h"
+#include "Terrain.h"
+#include "WorldAxes.h"
 
 using namespace std;
 
@@ -88,10 +90,13 @@ int main()
 	glfwGetFramebufferSize(window, &width, &height);
 
 	glViewport(0, 0, width, height);
+	glEnable(GL_DEPTH_TEST); // enable the z-buffer and depth testing
+	glDepthFunc(GL_LESS); // re-enable the depth buffer to normal
 
-	projection_matrix = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.0f, 100.0f);
 
-	Shader shader("vertex.shader", "fragment.shader");
+	projection_matrix = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.01f, 100.0f);
+
+	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
 	shader.UseProgram();
 
 	std::vector<glm::vec3> vertices;
@@ -133,6 +138,22 @@ int main()
 	GLuint viewMatrixLoc = glGetUniformLocation(shader.ID, "view_matrix");
 	GLuint transformLoc = glGetUniformLocation(shader.ID, "model_matrix");
 
+	// Terrain Plain
+	Terrain terrain(21, 21);
+	Shader terrainShader("shaders/terrain.vert", "shaders/terrain.frag");
+	terrainShader.UseProgram();
+	GLuint projectionLocT = glGetUniformLocation(terrainShader.ID, "projection");
+	GLuint viewMatrixLocT = glGetUniformLocation(terrainShader.ID, "view");
+	GLuint transformLocT = glGetUniformLocation(terrainShader.ID, "model");
+
+	// Global Axes
+	WorldAxes worldAxes;
+	Shader axisShader("shaders/axis.vert", "shaders/axis.frag");
+	axisShader.UseProgram();
+	GLuint projectionLocA = glGetUniformLocation(axisShader.ID, "projection");
+	GLuint viewMatrixLocA = glGetUniformLocation(axisShader.ID, "view");
+	GLuint transformLocA = glGetUniformLocation(axisShader.ID, "model");
+
 	// Game loop
 	while (!glfwWindowShouldClose(window))
 	{
@@ -148,7 +169,7 @@ int main()
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		glm::mat4 view_matrix;
 		view_matrix = camera.ViewMatrix();
@@ -156,6 +177,7 @@ int main()
 		glm::mat4 model_matrix;
 		model_matrix = glm::scale(model_matrix, triangle_scale);
 
+		shader.UseProgram();
 		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(model_matrix));
 		glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE, glm::value_ptr(view_matrix));
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection_matrix));
@@ -163,6 +185,25 @@ int main()
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 		glBindVertexArray(0);
+
+		// Terrain
+		terrainShader.UseProgram();
+		model_matrix = glm::mat4(1.0f);
+		model_matrix = glm::translate(model_matrix, glm::vec3(-terrain.getWidth() / 2.0f, -0.75f, -terrain.getHeight() / 2.0f));
+		glUniformMatrix4fv(transformLocT, 1, GL_FALSE, glm::value_ptr(model_matrix));
+		glUniformMatrix4fv(viewMatrixLocT, 1, GL_FALSE, glm::value_ptr(view_matrix));
+		glUniformMatrix4fv(projectionLocT, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+		terrain.Draw();
+
+		// Axes
+		glDepthFunc(GL_ALWAYS); // always render the world axes 
+		axisShader.UseProgram();
+		model_matrix = glm::mat4(1.0f);
+		glUniformMatrix4fv(transformLocA, 1, GL_FALSE, glm::value_ptr(model_matrix));
+		glUniformMatrix4fv(viewMatrixLocA, 1, GL_FALSE, glm::value_ptr(view_matrix));
+		glUniformMatrix4fv(projectionLocA, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+		worldAxes.Draw();
+		glDepthFunc(GL_LESS); // Set depth buffer function back to normal
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -183,7 +224,7 @@ void processInput(GLFWwindow *window)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
 	// Camera movement keys
-	float cameraSpeed = 2.5 * deltaTime;
+	float cameraSpeed = 8.5 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 		camera.DisplacePosition(camera.forwardDirection() * cameraSpeed);
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -192,6 +233,12 @@ void processInput(GLFWwindow *window)
 		camera.DisplacePosition(camera.rightDirection() * cameraSpeed);
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 		camera.DisplacePosition(-camera.rightDirection() * cameraSpeed);
+
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+		middleButtonClicked = true;
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_RELEASE)
+		middleButtonClicked = false;
+
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

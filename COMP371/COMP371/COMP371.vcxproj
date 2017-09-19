@@ -121,6 +121,8 @@
     <ClInclude Include="Shader.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="Terrain.h" />
+    <ClInclude Include="WorldAxes.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
@@ -133,10 +135,16 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Terrain.cpp" />
+    <ClCompile Include="WorldAxes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\fragment.shader" />
     <None Include="..\..\vertex.shader" />
+    <None Include="shaders\axis.frag" />
+    <None Include="shaders\axis.vert" />
+    <None Include="shaders\terrain.frag" />
+    <None Include="shaders\terrain.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
