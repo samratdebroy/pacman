@@ -7,6 +7,7 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="WorldAxes.cpp" />
+    <ClCompile Include="GridEntity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -15,6 +16,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WorldAxes.h" />
+    <ClInclude Include="GridEntity.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\vertex.shader">

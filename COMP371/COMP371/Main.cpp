@@ -18,6 +18,7 @@
 #include "Shader.h"
 #include "Terrain.h"
 #include "WorldAxes.h"
+#include "GridEntity.h"
 
 using namespace std;
 
@@ -41,6 +42,7 @@ bool middleButtonClicked = false;
 // Timing Variables
 float deltaTime = 0.0f; // Time b/w last frame and current frame
 float lastFrame = 0.0f;
+float longDeltaTime = 0.0f;
 
 // Player variables
 glm::mat4 pacman_model; //Pacman world location
@@ -104,40 +106,9 @@ int main()
 	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
 	shader.UseProgram();
 
-	std::vector<glm::vec3> vertices;
-	std::vector<glm::vec3> normals;
-	std::vector<glm::vec2> UVs;
-	loadOBJ("models/pacman.obj", vertices, normals, UVs); //read the vertices from the cube.obj file
-
-	GLuint VAO, VBO,EBO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
-	// Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
-	GLuint vertices_VBO, normals_VBO;
-
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &vertices_VBO);
-
-	// Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vertices_VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices.front(), GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(0);
-
-	glGenBuffers(1, &normals_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, normals_VBO);
-	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals.front(), GL_STATIC_DRAW);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(1);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
-
-	triangle_scale = glm::vec3(0.05f);
+	GridEntity pacman("models/pacman.obj", PACMAN);
+	
+	triangle_scale = glm::vec3(0.03f);
 
 	// Terrain Plain
 	Terrain terrain(21, 21);
@@ -176,9 +147,7 @@ int main()
 		shader.setMat4("view_matrix", view);
 		shader.setMat4("model_matrix", pacman_model);
 
-		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
-		glBindVertexArray(0);
+		pacman.Draw(GL_TRIANGLES);
 
 		// Terrain
 		terrainShader.UseProgram();
@@ -231,13 +200,13 @@ void processInput(GLFWwindow *window)
 	// Camera movement keys
 	float playerSpeed = 10 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, -1.0f) * playerSpeed);
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, -1.0f));
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, 1.0f) * playerSpeed);
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, 1.0f));
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(1.0f, 0.0f, 0.0f) * playerSpeed);
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(1.0f, 0.0f, 0.0f));
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(-1.0f, 0.0f, 0.0f) * playerSpeed);
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(-1.0f, 0.0f, 0.0f));
 
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && !middleButtonClicked)
 		middleButtonClicked = true;
@@ -305,12 +274,20 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 void getPlayerPosition(glm::mat4 &modelMat, glm::vec3 gridPosition)
 {
 	glm::mat4 tempMat; // Identity matrix
-	tempMat = glm::translate(tempMat, gridPosition);
+	tempMat = glm::translate(tempMat, gridPosition + glm::vec3(0.5f,0.0f,0.5f));
 	// TODO: Add local rotation
 	modelMat = tempMat;
 }
 
 void updatePlayerPosition(glm::vec3 &currGridPosition, glm::vec3 displacementVector)
 {
-	currGridPosition += displacementVector;
+	float timeBetweenMoves = 0.1f; // seconds between each movement
+	if(longDeltaTime > timeBetweenMoves)
+	{
+		currGridPosition += displacementVector;
+		longDeltaTime = 0;
+	}else
+	{
+		longDeltaTime += deltaTime;
+	}
 }
