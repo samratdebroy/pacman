@@ -12,8 +12,8 @@ Camera::Camera(glm::vec3 Position)
 void Camera::updateCameraOrientation()
 {
 	// Get local axes from the orientation matrix
-	forward = glm::vec3(glm::inverse(orientation()) * glm::vec4(0, 0, 1, 1));
-	right = glm::vec3(glm::inverse(orientation()) * glm::vec4(-1, 0, 0, 1));
+	forward = glm::vec3(glm::inverse(orientation()) * glm::vec4(0, 0, -1, 1)); // in OpenGL -z points into the screen
+	right = glm::vec3(glm::inverse(orientation()) * glm::vec4(1, 0, 0, 1));
 	up = glm::vec3(glm::inverse(orientation()) * glm::vec4(0, 1, 0, 1));
 
 	// Normalize all the axes direction vectors

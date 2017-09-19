@@ -26,7 +26,7 @@ const GLuint WIDTH = 800, HEIGHT = 800;
 
 glm::vec3 camera_position;
 glm::vec3 triangle_scale;
-glm::mat4 projection_matrix;
+glm::mat4 projection;
 
 // Camera Settings
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f)); // Camera with starting position
@@ -42,12 +42,17 @@ bool middleButtonClicked = false;
 float deltaTime = 0.0f; // Time b/w last frame and current frame
 float lastFrame = 0.0f;
 
+// Player variables
+glm::mat4 pacman_model; //Pacman world location
+glm::vec3 pacmanGridPosition(0.0f,0.0f,0.0f);
+
 // Prototype
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow *window);
-
+void getPlayerPosition(glm::mat4 &modelMat, glm::vec3 gridPosition);
+void updatePlayerPosition(glm::vec3 &currGridPosition, glm::vec3 displacementVector);
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -94,7 +99,7 @@ int main()
 	glDepthFunc(GL_LESS); // re-enable the depth buffer to normal
 
 
-	projection_matrix = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.01f, 100.0f);
+	projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.01f, 100.0f);
 
 	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
 	shader.UseProgram();
@@ -102,7 +107,7 @@ int main()
 	std::vector<glm::vec3> vertices;
 	std::vector<glm::vec3> normals;
 	std::vector<glm::vec2> UVs;
-	loadOBJ("cube.obj", vertices, normals, UVs); //read the vertices from the cube.obj file
+	loadOBJ("models/pacman.obj", vertices, normals, UVs); //read the vertices from the cube.obj file
 
 	GLuint VAO, VBO,EBO;
 	glGenVertexArrays(1, &VAO);
@@ -132,27 +137,15 @@ int main()
 
 	glBindVertexArray(0); // Unbind VAO (it's always a good thing to unbind any buffer/array to prevent strange bugs), remember: do NOT unbind the EBO, keep it bound to this VAO
 
-	triangle_scale = glm::vec3(1.0f);
-
-	GLuint projectionLoc = glGetUniformLocation(shader.ID, "projection_matrix");
-	GLuint viewMatrixLoc = glGetUniformLocation(shader.ID, "view_matrix");
-	GLuint transformLoc = glGetUniformLocation(shader.ID, "model_matrix");
+	triangle_scale = glm::vec3(0.05f);
 
 	// Terrain Plain
 	Terrain terrain(21, 21);
 	Shader terrainShader("shaders/terrain.vert", "shaders/terrain.frag");
-	terrainShader.UseProgram();
-	GLuint projectionLocT = glGetUniformLocation(terrainShader.ID, "projection");
-	GLuint viewMatrixLocT = glGetUniformLocation(terrainShader.ID, "view");
-	GLuint transformLocT = glGetUniformLocation(terrainShader.ID, "model");
 
 	// Global Axes
 	WorldAxes worldAxes;
 	Shader axisShader("shaders/axis.vert", "shaders/axis.frag");
-	axisShader.UseProgram();
-	GLuint projectionLocA = glGetUniformLocation(axisShader.ID, "projection");
-	GLuint viewMatrixLocA = glGetUniformLocation(axisShader.ID, "view");
-	GLuint transformLocA = glGetUniformLocation(axisShader.ID, "model");
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -171,16 +164,17 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		glm::mat4 view_matrix;
-		view_matrix = camera.ViewMatrix();
+		glm::mat4 view;
+		view = camera.ViewMatrix();
 
-		glm::mat4 model_matrix;
-		model_matrix = glm::scale(model_matrix, triangle_scale);
+		getPlayerPosition(pacman_model,pacmanGridPosition);
+		pacman_model = glm::scale(pacman_model, triangle_scale);
+		pacman_model = glm::rotate(pacman_model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		shader.UseProgram();
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(model_matrix));
-		glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE, glm::value_ptr(view_matrix));
-		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+		shader.setMat4("projection_matrix", projection);
+		shader.setMat4("view_matrix", view);
+		shader.setMat4("model_matrix", pacman_model);
 
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
@@ -188,20 +182,20 @@ int main()
 
 		// Terrain
 		terrainShader.UseProgram();
-		model_matrix = glm::mat4(1.0f);
-		model_matrix = glm::translate(model_matrix, glm::vec3(-terrain.getWidth() / 2.0f, -0.75f, -terrain.getHeight() / 2.0f));
-		glUniformMatrix4fv(transformLocT, 1, GL_FALSE, glm::value_ptr(model_matrix));
-		glUniformMatrix4fv(viewMatrixLocT, 1, GL_FALSE, glm::value_ptr(view_matrix));
-		glUniformMatrix4fv(projectionLocT, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(-terrain.getWidth() / 2.0f, -0.75f, -terrain.getHeight() / 2.0f));
+		terrainShader.setMat4("projection", projection);
+		terrainShader.setMat4("view", view);
+		terrainShader.setMat4("model", model);
 		terrain.Draw();
 
 		// Axes
 		glDepthFunc(GL_ALWAYS); // always render the world axes 
 		axisShader.UseProgram();
-		model_matrix = glm::mat4(1.0f);
-		glUniformMatrix4fv(transformLocA, 1, GL_FALSE, glm::value_ptr(model_matrix));
-		glUniformMatrix4fv(viewMatrixLocA, 1, GL_FALSE, glm::value_ptr(view_matrix));
-		glUniformMatrix4fv(projectionLocA, 1, GL_FALSE, glm::value_ptr(projection_matrix));
+		model = glm::mat4(1.0f);
+		axisShader.setMat4("projection", projection);
+		axisShader.setMat4("view", view);
+		axisShader.setMat4("model", model);
 		worldAxes.Draw();
 		glDepthFunc(GL_LESS); // Set depth buffer function back to normal
 
@@ -234,7 +228,18 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 		camera.DisplacePosition(-camera.rightDirection() * cameraSpeed);
 
-	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
+	// Camera movement keys
+	float playerSpeed = 10 * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, -1.0f) * playerSpeed);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, 1.0f) * playerSpeed);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(1.0f, 0.0f, 0.0f) * playerSpeed);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		updatePlayerPosition(pacmanGridPosition, glm::vec3(-1.0f, 0.0f, 0.0f) * playerSpeed);
+
+	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && !middleButtonClicked)
 		middleButtonClicked = true;
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_RELEASE)
 		middleButtonClicked = false;
@@ -295,4 +300,17 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	// make sure the viewport matches the new window dimensions; note that width and 
 	// height will be significantly larger than specified on retina displays.
 	glViewport(0, 0, width, height);
+}
+
+void getPlayerPosition(glm::mat4 &modelMat, glm::vec3 gridPosition)
+{
+	glm::mat4 tempMat; // Identity matrix
+	tempMat = glm::translate(tempMat, gridPosition);
+	// TODO: Add local rotation
+	modelMat = tempMat;
+}
+
+void updatePlayerPosition(glm::vec3 &currGridPosition, glm::vec3 displacementVector)
+{
+	currGridPosition += displacementVector;
 }

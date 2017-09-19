@@ -1,4 +1,5 @@
 #include "Shader.h"
+#include <type_ptr.hpp>
 
 Shader::Shader(const std::string vertex_shader_path, const std::string fragment_shader_path)
 {
@@ -81,3 +82,9 @@ void Shader::UseProgram()
 {
 	glUseProgram(ID);
 }
+
+void Shader::setMat4(const std::string& name, const glm::mat4& mat) const
+{
+	glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+}
+
