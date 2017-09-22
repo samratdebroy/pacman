@@ -118,6 +118,8 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="GridEntity.h" />
+    <ClInclude Include="GridManager.h" />
+    <ClInclude Include="GridPoint.h" />
     <ClInclude Include="objloader.hpp" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="stdafx.h" />
@@ -128,6 +130,8 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="GridEntity.cpp" />
+    <ClCompile Include="GridManager.cpp" />
+    <ClCompile Include="GridPoint.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="objloader.cpp" />
     <ClCompile Include="Shader.cpp" />

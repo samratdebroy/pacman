@@ -19,6 +19,7 @@
 #include "Terrain.h"
 #include "WorldAxes.h"
 #include "GridEntity.h"
+#include "GridManager.h"
 
 using namespace std;
 
@@ -48,6 +49,13 @@ float longDeltaTime = 0.0f;
 glm::mat4 pacman_model; //Pacman world location
 glm::vec3 pacmanGridPosition(0.0f,0.0f,0.0f);
 
+// Grid entities and grid
+std::vector<GridEntity> consumables;
+std::vector<GridEntity> enemies;
+std::vector<GridEntity> walls;
+GridEntity* pacman;
+GridManager* grid;
+
 // Prototype
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -55,6 +63,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow *window);
 void getPlayerPosition(glm::mat4 &modelMat, glm::vec3 gridPosition);
 void updatePlayerPosition(glm::vec3 &currGridPosition, glm::vec3 displacementVector);
+void setupGridEntities();
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -105,8 +114,6 @@ int main()
 
 	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
 	shader.UseProgram();
-
-	GridEntity pacman("models/pacman.obj", PACMAN);
 	
 	triangle_scale = glm::vec3(0.03f);
 
@@ -117,6 +124,10 @@ int main()
 	// Global Axes
 	WorldAxes worldAxes;
 	Shader axisShader("shaders/axis.vert", "shaders/axis.frag");
+
+	// Setup up Grid and Entities
+	setupGridEntities();
+	grid = new GridManager(&terrain, pacman, &consumables, &enemies, &walls);
 
 	// Game loop
 	while (!glfwWindowShouldClose(window))
@@ -129,7 +140,6 @@ int main()
 		// Handle inputs
 		processInput(window);
 
-
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -138,8 +148,10 @@ int main()
 		glm::mat4 view;
 		view = camera.ViewMatrix();
 
-		getPlayerPosition(pacman_model,pacmanGridPosition);
+		pacman_model = pacman->getGridPosition();
+		pacman_model = glm::translate(pacman_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
 		pacman_model = glm::scale(pacman_model, triangle_scale);
+		pacman->fixOrientation(pacman_model);
 		pacman_model = glm::rotate(pacman_model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
 		shader.UseProgram();
@@ -147,7 +159,7 @@ int main()
 		shader.setMat4("view_matrix", view);
 		shader.setMat4("model_matrix", pacman_model);
 
-		pacman.Draw(GL_TRIANGLES);
+		pacman->Draw(GL_TRIANGLES);
 
 		// Terrain
 		terrainShader.UseProgram();
@@ -200,13 +212,13 @@ void processInput(GLFWwindow *window)
 	// Camera movement keys
 	float playerSpeed = 10 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, -1.0f));
+		grid->move(pacman, UP);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(0.0f, 0.0f, 1.0f));
+		grid->move(pacman, DOWN);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(1.0f, 0.0f, 0.0f));
+		grid->move(pacman, RIGHT);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		updatePlayerPosition(pacmanGridPosition, glm::vec3(-1.0f, 0.0f, 0.0f));
+		grid->move(pacman, LEFT);
 
 	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && !middleButtonClicked)
 		middleButtonClicked = true;
@@ -271,23 +283,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-void getPlayerPosition(glm::mat4 &modelMat, glm::vec3 gridPosition)
+void setupGridEntities()
 {
-	glm::mat4 tempMat; // Identity matrix
-	tempMat = glm::translate(tempMat, gridPosition + glm::vec3(0.5f,0.0f,0.5f));
-	// TODO: Add local rotation
-	modelMat = tempMat;
-}
-
-void updatePlayerPosition(glm::vec3 &currGridPosition, glm::vec3 displacementVector)
-{
-	float timeBetweenMoves = 0.1f; // seconds between each movement
-	if(longDeltaTime > timeBetweenMoves)
-	{
-		currGridPosition += displacementVector;
-		longDeltaTime = 0;
-	}else
-	{
-		longDeltaTime += deltaTime;
-	}
+	pacman = new GridEntity ("models/pacman.obj", PACMAN);
+	// TODO: Set up consumables, ennemies and walls
 }

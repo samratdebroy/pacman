@@ -1,4 +1,5 @@
 #include "GridEntity.h"
+#include <matrix_transform.inl>
 
 GridEntity::GridEntity(const char * path, Entity_Type setType)
 {
@@ -14,6 +15,43 @@ void GridEntity::Draw(GLenum drawMode)
 	glBindVertexArray(0);
 }
 
+GridPoint* GridEntity::getGridPoint() const
+{
+	return currGridPoint;
+}
+
+void GridEntity::setGridPoint(GridPoint& newPoint)
+{
+	currGridPoint = &newPoint;
+}
+
+glm::mat4 GridEntity::getGridPosition() const
+{
+	glm::mat4 tempMat; // Identity matrix
+	tempMat = glm::translate(tempMat, currGridPoint->getPosition());
+	return tempMat;
+}
+
+/**
+ * Orients the local rotation of the entity assuming it's forward vector points in +x axis by default
+ */
+void GridEntity::fixOrientation(glm::mat4& forwardFacingModelMat) const
+{
+	switch(lastDirection)
+	{
+	case UP: 
+		forwardFacingModelMat = glm::rotate(forwardFacingModelMat, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		break;
+	case DOWN:
+		forwardFacingModelMat = glm::rotate(forwardFacingModelMat, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		break;
+	case LEFT: 
+		forwardFacingModelMat = glm::rotate(forwardFacingModelMat, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		break;
+	case RIGHT: break;
+	default: ;
+	}
+}
 
 void GridEntity::setupMesh()
 {

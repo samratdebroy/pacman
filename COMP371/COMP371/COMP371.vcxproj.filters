@@ -8,6 +8,8 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="WorldAxes.cpp" />
     <ClCompile Include="GridEntity.cpp" />
+    <ClCompile Include="GridPoint.cpp" />
+    <ClCompile Include="GridManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -17,6 +19,8 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="WorldAxes.h" />
     <ClInclude Include="GridEntity.h" />
+    <ClInclude Include="GridPoint.h" />
+    <ClInclude Include="GridManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\vertex.shader">
