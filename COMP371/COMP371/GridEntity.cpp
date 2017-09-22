@@ -6,6 +6,7 @@ GridEntity::GridEntity(const char * path, Entity_Type setType)
 	type = setType;
 	loadOBJ(path, vertices, normals, UVs); //read the vertices from the cube.obj file
 	setupMesh();
+	lastDirection = RIGHT;
 }
 
 void GridEntity::Draw(GLenum drawMode)

@@ -45,9 +45,8 @@ float deltaTime = 0.0f; // Time b/w last frame and current frame
 float lastFrame = 0.0f;
 float longDeltaTime = 0.0f;
 
-// Player variables
-glm::mat4 pacman_model; //Pacman world location
-glm::vec3 pacmanGridPosition(0.0f,0.0f,0.0f);
+// Player controlled variables
+GLenum drawMode = GL_TRIANGLES;
 
 // Grid entities and grid
 std::vector<GridEntity> consumables;
@@ -56,14 +55,19 @@ std::vector<GridEntity> walls;
 GridEntity* pacman;
 GridManager* grid;
 
+// Setup Variables for World Orientation
+float worldYaw = 0;
+float worldPitch = 0;
+glm::mat4 worldOrientation(1.0f);
+
 // Prototype
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow *window);
-void getPlayerPosition(glm::mat4 &modelMat, glm::vec3 gridPosition);
-void updatePlayerPosition(glm::vec3 &currGridPosition, glm::vec3 displacementVector);
-void setupGridEntities();
+void calcWorldOrientation();
+void setupGridEntities(int numOfConsumables = 10);
+void setDrawMode(GLenum newDrawMode);
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -145,10 +149,16 @@ int main()
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// View matrix
 		glm::mat4 view;
 		view = camera.ViewMatrix();
 
-		pacman_model = pacman->getGridPosition();
+		// World Orientation MAtrix
+		calcWorldOrientation();
+
+		// PACMAN
+		glm::mat4 pacman_model = worldOrientation;
+		pacman_model *= pacman->getGridPosition();
 		pacman_model = glm::translate(pacman_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
 		pacman_model = glm::scale(pacman_model, triangle_scale);
 		pacman->fixOrientation(pacman_model);
@@ -158,12 +168,30 @@ int main()
 		shader.setMat4("projection_matrix", projection);
 		shader.setMat4("view_matrix", view);
 		shader.setMat4("model_matrix", pacman_model);
+		shader.setVec4("ColorIn", glm::vec4(1.0f,1.0f,0.0f,1.0f));
 
-		pacman->Draw(GL_TRIANGLES);
+		pacman->Draw(drawMode);
+
+		// Draw Consumables
+		for(int i = 0; i < consumables.size(); i++)
+		{
+			glm::mat4 consumable_model = worldOrientation;
+			consumable_model *= consumables[i].getGridPosition();
+			consumable_model = glm::translate(consumable_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
+			consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(10));
+
+			shader.UseProgram();
+			shader.setMat4("projection_matrix", projection);
+			shader.setMat4("view_matrix", view);
+			shader.setMat4("model_matrix", consumable_model);
+			shader.setVec4("ColorIn", glm::vec4(1.0f,0.0f,0.0f,1.0f));
+
+			consumables[i].Draw(drawMode);
+		}
 
 		// Terrain
 		terrainShader.UseProgram();
-		glm::mat4 model = glm::mat4(1.0f);
+		glm::mat4 model = worldOrientation;
 		model = glm::translate(model, glm::vec3(-terrain.getWidth() / 2.0f, -0.75f, -terrain.getHeight() / 2.0f));
 		terrainShader.setMat4("projection", projection);
 		terrainShader.setMat4("view", view);
@@ -173,7 +201,7 @@ int main()
 		// Axes
 		glDepthFunc(GL_ALWAYS); // always render the world axes 
 		axisShader.UseProgram();
-		model = glm::mat4(1.0f);
+		model = worldOrientation;
 		axisShader.setMat4("projection", projection);
 		axisShader.setMat4("view", view);
 		axisShader.setMat4("model", model);
@@ -198,19 +226,32 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 
-	// Camera movement keys
-	float cameraSpeed = 8.5 * deltaTime;
+	// World Orientation keys
+	float worldRotationSpeed = 15.0f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-		camera.DisplacePosition(camera.forwardDirection() * cameraSpeed);
+		worldPitch += worldRotationSpeed;
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-		camera.DisplacePosition(-camera.forwardDirection() * cameraSpeed);
+		worldPitch -= worldRotationSpeed;
 	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-		camera.DisplacePosition(camera.rightDirection() * cameraSpeed);
+		worldYaw += worldRotationSpeed;
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-		camera.DisplacePosition(-camera.rightDirection() * cameraSpeed);
+		worldYaw -= worldRotationSpeed;
 
-	// Camera movement keys
-	float playerSpeed = 10 * deltaTime;
+	// Scale up and Down
+	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
+		triangle_scale += 0.01 * deltaTime;
+	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
+		triangle_scale -= 0.01 * deltaTime;
+
+	// Change Render Mode
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
+		setDrawMode(GL_LINES);
+	if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
+		setDrawMode(GL_TRIANGLES);
+	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
+		setDrawMode(GL_POINTS);
+
+	// Pacman movement keys
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		grid->move(pacman, UP);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -219,11 +260,6 @@ void processInput(GLFWwindow *window)
 		grid->move(pacman, RIGHT);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 		grid->move(pacman, LEFT);
-
-	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS && !middleButtonClicked)
-		middleButtonClicked = true;
-	if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_RELEASE)
-		middleButtonClicked = false;
 
 }
 
@@ -267,9 +303,12 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 	float cameraSensitivity = 0.1f;
 
+	if(leftButtonClicked)
+		camera.DisplacePosition(camera.forwardDirection() * yoffset * cameraSensitivity);
+
 	// Pan around y-axis if right mouse button is held down
 	if (rightButtonClicked)
-		camera.ChangeYaw(xoffset * cameraSensitivity);
+		camera.DisplacePosition(camera.rightDirection() * xoffset * cameraSensitivity);
 
 	// Tilt around x-axis if middle button is held down
 	if (middleButtonClicked)
@@ -283,8 +322,27 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
-void setupGridEntities()
+void setupGridEntities(int numOfConsumables)
 {
 	pacman = new GridEntity ("models/pacman.obj", PACMAN);
-	// TODO: Set up consumables, ennemies and walls
+
+	for (int i = 0; i < numOfConsumables; i++)
+	{
+		GridEntity tempEntity("models/sphere.obj", CONSUMABLE);
+		consumables.push_back(tempEntity);
+	}
+
+	// TODO: Set up ennemies and walls
+}
+
+void setDrawMode(GLenum newDrawMode)
+{
+	drawMode = newDrawMode;
+}
+
+void calcWorldOrientation()
+{
+	worldOrientation = glm::mat4(1.0f);
+	worldOrientation = glm::rotate(worldOrientation, glm::radians(worldPitch), glm::vec3(1, 0, 0));
+	worldOrientation = glm::rotate(worldOrientation, glm::radians(worldYaw), glm::vec3(0, 1, 0));
 }

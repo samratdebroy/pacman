@@ -19,7 +19,7 @@ private:
 	void placeEntity(std::vector<GridEntity>* entity);
 	void generateGrid();
 
-	float timeBetweenMovements = 0.3f; // Time b/w subsequent movements
+	float timeBetweenMovements = 0.1f; // Time b/w subsequent movements
 	float lastTime = 0.0f;
 
 public:

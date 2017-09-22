@@ -32,12 +32,13 @@ void GridManager::placeEntity(GridEntity* entity, int xCoord = -1, int zCoord = 
  */
 void GridManager::placeEntity(std::vector<GridEntity>* entity)
 {
+	int size = entity->size();
 	for (int i = 0; i < entity->size(); i++)
-		placeEntity(&entity[i]);
+		placeEntity(&(*entity)[i]);
 }
 
 
-GridManager::GridManager(Terrain* terrain, GridEntity* pacman, std::vector<GridEntity>* consumables, std::vector<GridEntity>* enemies, std::vector<GridEntity>* walls)
+GridManager::GridManager(Terrain* terrain, GridEntity* Pacman, std::vector<GridEntity>* Consumables, std::vector<GridEntity>* Enemies, std::vector<GridEntity>* Walls)
 {
 	/* initialize random seed: */
 	srand(time(NULL));
@@ -48,19 +49,19 @@ GridManager::GridManager(Terrain* terrain, GridEntity* pacman, std::vector<GridE
 	// Setup GridPoints
 	generateGrid();
 
-	this->pacman = pacman;
-	this->consumables = consumables;
-	this->enemies = enemies;
-	this->walls = walls;
+	this->pacman = Pacman;
+	this->consumables = Consumables;
+	this->enemies = Enemies;
+	this->walls = Walls;
 
 	// Place all the entities in their starting positions if they're not null
-	if(walls)
+	if(!walls->empty())
 	placeWalls(); // Always place walls first
-	if(pacman)
+	if(pacman != nullptr)
 	placeEntity(pacman, width/2, height/2); // Initially pacman is supposed to start at the origin (unless there's a wall)
-	if(enemies)
+	if(!enemies->empty())
 	placeEntity(enemies);
-	if(consumables)
+	if(!consumables->empty())
 	placeEntity(consumables);
 }
 
