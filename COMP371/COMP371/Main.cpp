@@ -172,21 +172,24 @@ int main()
 
 		pacman->Draw(drawMode);
 
-		// Draw Consumables
+		// Draw remaining Consumables
 		for(int i = 0; i < consumables.size(); i++)
 		{
-			glm::mat4 consumable_model = worldOrientation;
-			consumable_model *= consumables[i].getGridPosition();
-			consumable_model = glm::translate(consumable_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
-			consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(10));
+			if(!consumables[i].wasDeleted)
+			{
+				glm::mat4 consumable_model = worldOrientation;
+				consumable_model *= consumables[i].getGridPosition();
+				consumable_model = glm::translate(consumable_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
+				consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(10));
 
-			shader.UseProgram();
-			shader.setMat4("projection_matrix", projection);
-			shader.setMat4("view_matrix", view);
-			shader.setMat4("model_matrix", consumable_model);
-			shader.setVec4("ColorIn", glm::vec4(1.0f,0.0f,0.0f,1.0f));
+				shader.UseProgram();
+				shader.setMat4("projection_matrix", projection);
+				shader.setMat4("view_matrix", view);
+				shader.setMat4("model_matrix", consumable_model);
+				shader.setVec4("ColorIn", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
-			consumables[i].Draw(drawMode);
+				consumables[i].Draw(drawMode);
+			}
 		}
 
 		// Terrain

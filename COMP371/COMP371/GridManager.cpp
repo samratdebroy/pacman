@@ -168,6 +168,7 @@ GridPoint GridManager::getGridPoint(int xCoord, int zCoord)
 
 void GridManager::deleteConsumable(GridEntity& entity)
 {
-	consumables->erase(std::remove(consumables->begin(), consumables->end(),entity), consumables->end());
+	entity.wasDeleted = true;
+	//consumables->erase(std::remove(consumables->begin(), consumables->end(),entity), consumables->end());
 }
 

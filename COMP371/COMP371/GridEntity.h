@@ -49,6 +49,7 @@ private:
 
 public:
 	Entity_Type type;
+	bool wasDeleted = false;
 	GridEntity(const char * path, Entity_Type setType);
 	void Draw(GLenum drawMode);
 	GridPoint* getGridPoint() const;
