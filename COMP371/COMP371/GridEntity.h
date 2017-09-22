@@ -14,8 +14,6 @@ enum Entity_Type {
 	WALL
 };
 
-class GridPoint;
-
 enum Movement_Direction {
 	UP,
 	DOWN,
@@ -23,9 +21,21 @@ enum Movement_Direction {
 	RIGHT
 };
 
+// Forward declaration
+class GridPoint;
+class GridManager;
+
 class GridEntity
 {
+
 private:
+
+	// Override the == operator
+	friend inline bool operator==(const GridEntity& lhs, const GridEntity& rhs)
+	{
+		return (lhs.VAO == rhs.VAO && lhs.VBO == rhs.VBO && lhs.EBO == rhs.EBO && lhs.currGridPoint == rhs.currGridPoint);
+	}
+
 	//Grid data
 	GridPoint* currGridPoint = nullptr;
 
@@ -46,6 +56,4 @@ public:
 	glm::mat4 getGridPosition() const;
 	void fixOrientation(glm::mat4 &forwardFacingModelMat) const;
 	Movement_Direction lastDirection;
-
 };
-

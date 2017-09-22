@@ -1,9 +1,10 @@
 #include "GridPoint.h"
 #include <iostream>
 
-GridPoint::GridPoint(int x, int z)
+GridPoint::GridPoint(int x, int z, GridManager* newGrid)
 {
 	gridPosition = glm::vec3(x, 0.0f, z);
+	grid = newGrid;
 }
 
 bool GridPoint::hasEnemy()
@@ -55,11 +56,12 @@ void GridPoint::attach(GridEntity* entity)
 		if (hasPacman() && hasEnemy())
 			std::cout << "ouch, you lose!" << std::endl;// TODO: add game restart;
 
-														// If both consumable and pacman are on the same point, destroy the consumable
+		// If both consumable and pacman are on the same point, destroy the consumable
 		if (hasPacman() && hasConsumable())
 		{
 			std::cout << "ohh, a sphere!" << std::endl;
-			// TODO: call grid manager and remove the consumable
+			grid->deleteConsumable(*consumable);
+			detach(consumable);
 		}
 
 		// Update the entity's current grid point and detach the last one (if contained)
@@ -86,3 +88,4 @@ glm::vec3 GridPoint::getPosition()
 {
 	return gridPosition;
 }
+

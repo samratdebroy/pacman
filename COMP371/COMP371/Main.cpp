@@ -251,6 +251,10 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS)
 		setDrawMode(GL_POINTS);
 
+	// Place pacman in a random location
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		grid->resetPacmanPosition();
+
 	// Pacman movement keys
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		grid->move(pacman, UP);
@@ -317,9 +321,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-	// make sure the viewport matches the new window dimensions; note that width and 
-	// height will be significantly larger than specified on retina displays.
+	// make sure the viewport matches the new window dimensions
 	glViewport(0, 0, width, height);
+	// Update the project matrix to ensure we keep the proper aspect ratio
+	projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.01f, 100.0f); 
 }
 
 void setupGridEntities(int numOfConsumables)

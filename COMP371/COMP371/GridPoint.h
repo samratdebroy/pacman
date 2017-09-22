@@ -2,18 +2,22 @@
 
 #include "GridEntity.h"
 #include <algorithm>
+#include "GridManager.h"
 
+// Forward declaration
 class GridEntity;
+class GridManager;
 
 class GridPoint
 {
+	GridManager* grid;
 	GridEntity* consumable = nullptr;
 	GridEntity *pacman = nullptr;
 	GridEntity *wall = nullptr;
 	std::vector<GridEntity *> enemies;
 	glm::vec3 gridPosition;
 public:
-	GridPoint(int x, int z);
+	GridPoint(int x, int z, GridManager* newGrid);
 
 	// Functions to see what's currently on the grid point
 	bool hasEnemy();

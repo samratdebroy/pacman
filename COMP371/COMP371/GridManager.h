@@ -5,6 +5,11 @@
 #include <stdlib.h>   
 #include <time.h>      
 
+// Forward declaration
+class GridEntity;
+class GridPoint;
+enum Movement_Direction;
+
 class GridManager
 {
 private:
@@ -21,7 +26,6 @@ private:
 
 	float timeBetweenMovements = 0.1f; // Time b/w subsequent movements
 	float lastTime = 0.0f;
-
 public:
 	GridManager(Terrain * terrain, GridEntity* pacman, std::vector<GridEntity>* consumables, std::vector<GridEntity>* enemies, std::vector<GridEntity>* walls);
 	void placeWalls();
@@ -34,5 +38,6 @@ public:
 	std::vector<GridEntity>* getWalls() const;
 	GridEntity* getPacman() const;
 	GridPoint getGridPoint(int xCoord, int zCoord);
+	void deleteConsumable(GridEntity &entity);
 };
 
