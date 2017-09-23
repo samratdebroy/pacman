@@ -43,7 +43,8 @@ bool middleButtonClicked = false;
 // Timing Variables
 float deltaTime = 0.0f; // Time b/w last frame and current frame
 float lastFrame = 0.0f;
-float longDeltaTime = 0.0f;
+float lastEnemyMovement = 0.0f;
+bool stopEnemyMovement = true;
 
 // Player controlled variables
 GLenum drawMode = GL_TRIANGLES;
@@ -66,8 +67,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow *window);
 void calcWorldOrientation();
-void setupGridEntities(int numOfConsumables = 10);
+void setupGridEntities(int numOfConsumables = 10, int numOfEnemies = 4);
 void setDrawMode(GLenum newDrawMode);
+void moveEnemies(std::vector<GridEntity>& enemies);
+
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -119,10 +122,25 @@ int main()
 	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
 	shader.UseProgram();
 	
-	triangle_scale = glm::vec3(0.03f);
+	triangle_scale = glm::vec3(0.5f); //set to 0.03f for pacman model
 
 	// Terrain Plain
-	Terrain terrain(21, 21);
+	int gridWidth =999, gridHeight = 999;
+	while(gridWidth < 8 || gridWidth > 500)
+	{
+		cout << "Please enter the width (10 to 500) of the Grid you would like" << endl;
+		cin >> gridWidth;
+	}
+
+	while (gridHeight < 8 || gridHeight > 500)
+	{
+		cout << "Please enter the height (10 to 500) of the Grid you would like" << endl;
+		cin >> gridHeight;
+	}
+
+	cout << "Press 'Q' to let the enemies chase you" << endl;
+
+	Terrain terrain(gridWidth, gridHeight);
 	Shader terrainShader("shaders/terrain.vert", "shaders/terrain.frag");
 
 	// Global Axes
@@ -130,7 +148,7 @@ int main()
 	Shader axisShader("shaders/axis.vert", "shaders/axis.frag");
 
 	// Setup up Grid and Entities
-	setupGridEntities();
+	setupGridEntities((gridHeight + gridWidth)/2, 4);
 	grid = new GridManager(&terrain, pacman, &consumables, &enemies, &walls);
 
 	// Game loop
@@ -143,6 +161,12 @@ int main()
 
 		// Handle inputs
 		processInput(window);
+
+		if(currentFrame - lastEnemyMovement > 0.3 && !stopEnemyMovement)
+		{
+			moveEnemies(enemies);
+			lastEnemyMovement = currentFrame;
+		}
 
 		// Render
 		// Clear the colorbuffer
@@ -162,7 +186,7 @@ int main()
 		pacman_model = glm::translate(pacman_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
 		pacman_model = glm::scale(pacman_model, triangle_scale);
 		pacman->fixOrientation(pacman_model);
-		pacman_model = glm::rotate(pacman_model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		//pacman_model = glm::rotate(pacman_model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Don't use with teapot
 
 		shader.UseProgram();
 		shader.setMat4("projection_matrix", projection);
@@ -180,7 +204,7 @@ int main()
 				glm::mat4 consumable_model = worldOrientation;
 				consumable_model *= consumables[i].getGridPosition();
 				consumable_model = glm::translate(consumable_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
-				consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(10));
+				consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(0.4f)); // do * vec3(10) if using pacman model
 
 				shader.UseProgram();
 				shader.setMat4("projection_matrix", projection);
@@ -190,6 +214,26 @@ int main()
 
 				consumables[i].Draw(drawMode);
 			}
+		}
+
+		// Draw Enemies
+		for (int i = 0; i < enemies.size(); i++)
+		{
+			glm::mat4 enemy_model = worldOrientation;
+			enemy_model *= enemies[i].getGridPosition();
+			enemy_model = glm::translate(enemy_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
+			enemy_model = glm::scale(enemy_model, triangle_scale * glm::vec3(0.2f));
+			enemies[i].fixOrientation(enemy_model);
+
+			shader.UseProgram();
+			shader.setMat4("projection_matrix", projection);
+			shader.setMat4("view_matrix", view);
+			shader.setMat4("model_matrix", enemy_model);
+			// Just to make things interesting, have the ghosts change color with time
+			shader.setVec4("ColorIn", glm::vec4(glm::sin(glfwGetTime() *(i + 1)),0.8f, glm::sin(glfwGetTime()/(i + 1.0f)),1.0f));
+
+			enemies[i].Draw(drawMode);
+
 		}
 
 		// Terrain
@@ -219,6 +263,8 @@ int main()
 
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
+	delete(pacman);
+	delete(grid);
 	return 0;
 }
 
@@ -239,6 +285,12 @@ void processInput(GLFWwindow *window)
 		worldYaw += worldRotationSpeed;
 	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 		worldYaw -= worldRotationSpeed;
+	if (glfwGetKey(window, GLFW_KEY_HOME) == GLFW_PRESS)
+	{
+		worldPitch = 0;
+		worldYaw = 0;
+	}
+
 
 	// Scale up and Down
 	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
@@ -268,6 +320,8 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 		grid->move(pacman, LEFT);
 
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		stopEnemyMovement = !stopEnemyMovement;
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -330,9 +384,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.01f, 100.0f); 
 }
 
-void setupGridEntities(int numOfConsumables)
+void setupGridEntities(int numOfConsumables, int numOfEnemies)
 {
-	pacman = new GridEntity ("models/pacman.obj", PACMAN);
+	pacman = new GridEntity ("models/teapot.obj", PACMAN);
 
 	for (int i = 0; i < numOfConsumables; i++)
 	{
@@ -340,7 +394,13 @@ void setupGridEntities(int numOfConsumables)
 		consumables.push_back(tempEntity);
 	}
 
-	// TODO: Set up ennemies and walls
+	for (int i = 0; i < numOfEnemies; i++)
+	{
+		GridEntity tempEntity("models/MazeGhostWhite.obj", ENEMY);
+		enemies.push_back(tempEntity);
+	}
+
+	// TODO: Set up walls
 }
 
 void setDrawMode(GLenum newDrawMode)
@@ -353,4 +413,37 @@ void calcWorldOrientation()
 	worldOrientation = glm::mat4(1.0f);
 	worldOrientation = glm::rotate(worldOrientation, glm::radians(worldPitch), glm::vec3(1, 0, 0));
 	worldOrientation = glm::rotate(worldOrientation, glm::radians(worldYaw), glm::vec3(0, 1, 0));
+}
+
+void moveEnemies(std::vector<GridEntity>& enemies)
+{
+	for (int i = 0; i < enemies.size(); i++) {
+		glm::vec3 enemyPosition = enemies[i].getGridPoint()->getPosition();
+		glm::vec3 pacmanPosition = pacman->getGridPoint()->getPosition();
+
+		// Used to randomize whether next movement will be on x or z axis
+		int moveXFirst = rand() % 2;
+
+		if(moveXFirst == 0)
+		{
+			if (enemyPosition.x > pacmanPosition.x)
+				grid->move(&enemies[i], LEFT);
+			if (enemyPosition.x < pacmanPosition.x)
+				grid->move(&enemies[i], RIGHT);
+		}
+
+		if (enemyPosition.z > pacmanPosition.z)
+			grid->move(&enemies[i], UP);
+		if (enemyPosition.z < pacmanPosition.z)
+			grid->move(&enemies[i], DOWN);
+
+		if (moveXFirst != 0)
+		{
+			if (enemyPosition.x > pacmanPosition.x)
+				grid->move(&enemies[i], LEFT);
+			if (enemyPosition.x < pacmanPosition.x)
+				grid->move(&enemies[i], RIGHT);
+		}
+
+	}
 }

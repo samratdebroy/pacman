@@ -56,5 +56,8 @@ public:
 	void setGridPoint(GridPoint &newPoint);
 	glm::mat4 getGridPosition() const;
 	void fixOrientation(glm::mat4 &forwardFacingModelMat) const;
+
+	// data to keep track of entity state
 	Movement_Direction lastDirection;
+	float lastMovementTime = 0;
 };

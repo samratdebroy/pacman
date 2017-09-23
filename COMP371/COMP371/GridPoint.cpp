@@ -59,7 +59,6 @@ void GridPoint::attach(GridEntity* entity)
 		// If both consumable and pacman are on the same point, destroy the consumable
 		if (hasPacman() && hasConsumable())
 		{
-			std::cout << "ohh, a sphere!" << std::endl;
 			grid->deleteConsumable(*consumable);
 			detach(consumable);
 		}

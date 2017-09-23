@@ -101,7 +101,7 @@ void GridManager::move(GridEntity* entity, Movement_Direction direction)
 
 	// Ensure objects move only every set amount of time
 	float currentTime = glfwGetTime();
-	float deltaTime = currentTime - lastTime;
+	float deltaTime = currentTime - entity->lastMovementTime;
 
 	if (deltaTime > timeBetweenMovements)
 	{
@@ -135,7 +135,7 @@ void GridManager::move(GridEntity* entity, Movement_Direction direction)
 		default: break;
 
 		}
-		lastTime = currentTime;
+		entity->lastMovementTime = currentTime;
 		entity->lastDirection = direction; // Update the entities orientation
 	}
 

@@ -25,7 +25,6 @@ private:
 	void generateGrid();
 
 	float timeBetweenMovements = 0.1f; // Time b/w subsequent movements
-	float lastTime = 0.0f;
 public:
 	GridManager(Terrain * terrain, GridEntity* pacman, std::vector<GridEntity>* consumables, std::vector<GridEntity>* enemies, std::vector<GridEntity>* walls);
 	void placeWalls();
