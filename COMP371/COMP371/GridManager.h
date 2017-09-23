@@ -19,7 +19,6 @@ private:
 	std::vector<GridEntity>* walls;
 	GridEntity* pacman;
 	int width, height;
-
 	void placeEntity(GridEntity* entity, int xCoord, int zCoord);
 	void placeEntity(std::vector<GridEntity>* entity);
 	void generateGrid();
@@ -38,5 +37,7 @@ public:
 	GridEntity* getPacman() const;
 	GridPoint getGridPoint(int xCoord, int zCoord);
 	void deleteConsumable(GridEntity &entity);
+
+	bool gameOver = false;
 };
 

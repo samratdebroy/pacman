@@ -14,7 +14,7 @@ class GridPoint
 	GridEntity* consumable = nullptr;
 	GridEntity *pacman = nullptr;
 	GridEntity *wall = nullptr;
-	std::vector<GridEntity *> enemies;
+	GridEntity* enemy = nullptr;
 	glm::vec3 gridPosition;
 public:
 	GridPoint(int x, int z, GridManager* newGrid);

@@ -9,7 +9,7 @@ GridPoint::GridPoint(int x, int z, GridManager* newGrid)
 
 bool GridPoint::hasEnemy()
 {
-	return !enemies.empty();
+	return (enemy != nullptr);
 }
 
 bool GridPoint::hasPacman()
@@ -47,14 +47,17 @@ void GridPoint::attach(GridEntity* entity)
 		{
 		case CONSUMABLE: consumable = entity; break;
 		case PACMAN: pacman = entity; break;
-		case ENEMY: enemies.push_back(entity); break;
+		case ENEMY: enemy = entity; break;
 		case WALL: wall = entity; break;
 		}
 
 		// If we have conflicting entities on the same grid point, resolve the issue
 		// If both enemy and pacman present, gameover
 		if (hasPacman() && hasEnemy())
+		{
 			std::cout << "ouch, you lose!" << std::endl;// TODO: add game restart;
+			grid->gameOver = true;
+		}
 
 		// If both consumable and pacman are on the same point, destroy the consumable
 		if (hasPacman() && hasConsumable())
@@ -78,7 +81,7 @@ void GridPoint::detach(GridEntity* entity)
 	{
 	case CONSUMABLE: consumable = nullptr; break;
 	case PACMAN: pacman = nullptr; break;
-	case ENEMY:enemies.erase(std::remove(enemies.begin(), enemies.end(), entity), enemies.end()); break;
+	case ENEMY:enemy = nullptr; break;
 	case WALL: wall = nullptr; break;
 	}
 }

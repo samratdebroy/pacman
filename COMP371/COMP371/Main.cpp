@@ -44,10 +44,11 @@ bool middleButtonClicked = false;
 float deltaTime = 0.0f; // Time b/w last frame and current frame
 float lastFrame = 0.0f;
 float lastEnemyMovement = 0.0f;
-bool stopEnemyMovement = true;
 
 // Player controlled variables
 GLenum drawMode = GL_TRIANGLES;
+bool stopEnemyMovement = true;
+bool restart = true;
 
 // Grid entities and grid
 std::vector<GridEntity> consumables;
@@ -119,14 +120,9 @@ int main()
 
 	projection = glm::perspective(45.0f, (GLfloat)width / (GLfloat)height, 0.01f, 100.0f);
 
-	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
-	shader.UseProgram();
-	
-	triangle_scale = glm::vec3(0.5f); //set to 0.03f for pacman model
-
-	// Terrain Plain
-	int gridWidth =999, gridHeight = 999;
-	while(gridWidth < 8 || gridWidth > 500)
+	// Ask user for grid Size
+	int gridWidth = 999, gridHeight = 999;
+	while (gridWidth < 8 || gridWidth > 500)
 	{
 		cout << "Please enter the width (10 to 500) of the Grid you would like" << endl;
 		cin >> gridWidth;
@@ -140,6 +136,12 @@ int main()
 
 	cout << "Press 'Q' to let the enemies chase you" << endl;
 
+	Shader shader("shaders/vertex.shader", "shaders/fragment.shader");
+	shader.UseProgram();
+
+	triangle_scale = glm::vec3(0.5f); //set to 0.03f for pacman model
+
+									  // Terrain Plain
 	Terrain terrain(gridWidth, gridHeight);
 	Shader terrainShader("shaders/terrain.vert", "shaders/terrain.frag");
 
@@ -147,124 +149,136 @@ int main()
 	WorldAxes worldAxes;
 	Shader axisShader("shaders/axis.vert", "shaders/axis.frag");
 
-	// Setup up Grid and Entities
-	setupGridEntities((gridHeight + gridWidth)/2, 4);
-	grid = new GridManager(&terrain, pacman, &consumables, &enemies, &walls);
+	// Do while loop so that everytime a player hits an ennemy, game restarts
+	do {
 
-	// Game loop
-	while (!glfwWindowShouldClose(window))
-	{
-		// per-frame Time logic
-		float currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
-		lastFrame = currentFrame;
+		// Setup up Grid and Entities
+		setupGridEntities((gridHeight + gridWidth) / 2, 4);
+		GridManager newGrid = GridManager(&terrain, pacman, &consumables, &enemies, &walls);
+		grid = &newGrid;
 
-		// Handle inputs
-		processInput(window);
-
-		if(currentFrame - lastEnemyMovement > 0.3 && !stopEnemyMovement)
+		// Game loop
+		while (!glfwWindowShouldClose(window))
 		{
-			moveEnemies(enemies);
-			lastEnemyMovement = currentFrame;
-		}
+			// per-frame Time logic
+			float currentFrame = glfwGetTime();
+			deltaTime = currentFrame - lastFrame;
+			lastFrame = currentFrame;
 
-		// Render
-		// Clear the colorbuffer
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			// Handle inputs
+			processInput(window);
 
-		// View matrix
-		glm::mat4 view;
-		view = camera.ViewMatrix();
-
-		// World Orientation MAtrix
-		calcWorldOrientation();
-
-		// PACMAN
-		glm::mat4 pacman_model = worldOrientation;
-		pacman_model *= pacman->getGridPosition();
-		pacman_model = glm::translate(pacman_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
-		pacman_model = glm::scale(pacman_model, triangle_scale);
-		pacman->fixOrientation(pacman_model);
-		//pacman_model = glm::rotate(pacman_model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Don't use with teapot
-
-		shader.UseProgram();
-		shader.setMat4("projection_matrix", projection);
-		shader.setMat4("view_matrix", view);
-		shader.setMat4("model_matrix", pacman_model);
-		shader.setVec4("ColorIn", glm::vec4(1.0f,1.0f,0.0f,1.0f));
-
-		pacman->Draw(drawMode);
-
-		// Draw remaining Consumables
-		for(int i = 0; i < consumables.size(); i++)
-		{
-			if(!consumables[i].wasDeleted)
+			if (currentFrame - lastEnemyMovement > 0.3 && !stopEnemyMovement)
 			{
-				glm::mat4 consumable_model = worldOrientation;
-				consumable_model *= consumables[i].getGridPosition();
-				consumable_model = glm::translate(consumable_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
-				consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(0.4f)); // do * vec3(10) if using pacman model
-
-				shader.UseProgram();
-				shader.setMat4("projection_matrix", projection);
-				shader.setMat4("view_matrix", view);
-				shader.setMat4("model_matrix", consumable_model);
-				shader.setVec4("ColorIn", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
-				consumables[i].Draw(drawMode);
+				moveEnemies(enemies);
+				lastEnemyMovement = currentFrame;
 			}
-		}
 
-		// Draw Enemies
-		for (int i = 0; i < enemies.size(); i++)
-		{
-			glm::mat4 enemy_model = worldOrientation;
-			enemy_model *= enemies[i].getGridPosition();
-			enemy_model = glm::translate(enemy_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
-			enemy_model = glm::scale(enemy_model, triangle_scale * glm::vec3(0.2f));
-			enemies[i].fixOrientation(enemy_model);
+			// Render
+			// Clear the colorbuffer
+			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			// View matrix
+			glm::mat4 view;
+			view = camera.ViewMatrix();
+
+			// World Orientation MAtrix
+			calcWorldOrientation();
+
+			// PACMAN
+			glm::mat4 pacman_model = worldOrientation;
+			pacman_model *= pacman->getGridPosition();
+			pacman_model = glm::translate(pacman_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
+			pacman_model = glm::scale(pacman_model, triangle_scale);
+			pacman->fixOrientation(pacman_model);
+			//pacman_model = glm::rotate(pacman_model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Don't use with teapot
 
 			shader.UseProgram();
 			shader.setMat4("projection_matrix", projection);
 			shader.setMat4("view_matrix", view);
-			shader.setMat4("model_matrix", enemy_model);
-			// Just to make things interesting, have the ghosts change color with time
-			shader.setVec4("ColorIn", glm::vec4(glm::sin(glfwGetTime() *(i + 1)),0.8f, glm::sin(glfwGetTime()/(i + 1.0f)),1.0f));
+			shader.setMat4("model_matrix", pacman_model);
+			shader.setVec4("ColorIn", glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
 
-			enemies[i].Draw(drawMode);
+			pacman->Draw(drawMode);
+
+			// Draw remaining Consumables
+			for (int i = 0; i < consumables.size(); i++)
+			{
+				if (!consumables[i].wasDeleted)
+				{
+					glm::mat4 consumable_model = worldOrientation;
+					consumable_model *= consumables[i].getGridPosition();
+					consumable_model = glm::translate(consumable_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
+					consumable_model = glm::scale(consumable_model, triangle_scale * glm::vec3(0.4f)); // do * vec3(10) if using pacman model
+
+					shader.UseProgram();
+					shader.setMat4("projection_matrix", projection);
+					shader.setMat4("view_matrix", view);
+					shader.setMat4("model_matrix", consumable_model);
+					shader.setVec4("ColorIn", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+
+					consumables[i].Draw(drawMode);
+				}
+			}
+
+			// Draw Enemies
+			for (int i = 0; i < enemies.size(); i++)
+			{
+				glm::mat4 enemy_model = worldOrientation;
+				enemy_model *= enemies[i].getGridPosition();
+				enemy_model = glm::translate(enemy_model, glm::vec3(-terrain.getWidth() / 2.0f, 0.0f, -terrain.getHeight() / 2.0f)); // Follow the terrains translation
+				enemy_model = glm::scale(enemy_model, triangle_scale * glm::vec3(0.2f));
+				enemies[i].fixOrientation(enemy_model);
+
+				shader.UseProgram();
+				shader.setMat4("projection_matrix", projection);
+				shader.setMat4("view_matrix", view);
+				shader.setMat4("model_matrix", enemy_model);
+				// Just to make things interesting, have the ghosts change color with time
+				shader.setVec4("ColorIn", glm::vec4(glm::sin(glfwGetTime() *(i + 1)), 0.8f, glm::sin(glfwGetTime() / (i + 1.0f)), 1.0f));
+
+				enemies[i].Draw(drawMode);
+
+			}
+
+			// Terrain
+			terrainShader.UseProgram();
+			glm::mat4 model = worldOrientation;
+			model = glm::translate(model, glm::vec3(-terrain.getWidth() / 2.0f, -0.75f, -terrain.getHeight() / 2.0f));
+			terrainShader.setMat4("projection", projection);
+			terrainShader.setMat4("view", view);
+			terrainShader.setMat4("model", model);
+			terrain.Draw();
+
+			// Axes
+			glDepthFunc(GL_ALWAYS); // always render the world axes 
+			axisShader.UseProgram();
+			model = worldOrientation;
+			axisShader.setMat4("projection", projection);
+			axisShader.setMat4("view", view);
+			axisShader.setMat4("model", model);
+			worldAxes.Draw();
+			glDepthFunc(GL_LESS); // Set depth buffer function back to normal
+
+			// Swap the screen buffers
+			glfwSwapBuffers(window);
+			// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
+			glfwPollEvents();
+
+			// If the player touched an enemy, restart the game
+			if (grid->gameOver)
+				break;
 
 		}
 
-		// Terrain
-		terrainShader.UseProgram();
-		glm::mat4 model = worldOrientation;
-		model = glm::translate(model, glm::vec3(-terrain.getWidth() / 2.0f, -0.75f, -terrain.getHeight() / 2.0f));
-		terrainShader.setMat4("projection", projection);
-		terrainShader.setMat4("view", view);
-		terrainShader.setMat4("model", model);
-		terrain.Draw();
+		enemies.clear();
+		consumables.clear();
 
-		// Axes
-		glDepthFunc(GL_ALWAYS); // always render the world axes 
-		axisShader.UseProgram();
-		model = worldOrientation;
-		axisShader.setMat4("projection", projection);
-		axisShader.setMat4("view", view);
-		axisShader.setMat4("model", model);
-		worldAxes.Draw();
-		glDepthFunc(GL_LESS); // Set depth buffer function back to normal
-
-		// Swap the screen buffers
-		glfwSwapBuffers(window);
-		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
-		glfwPollEvents();
-	}
+	}while (restart);
 
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
-	delete(pacman);
-	delete(grid);
 	return 0;
 }
 
@@ -273,7 +287,11 @@ void processInput(GLFWwindow *window)
 {
 	// Exits the application if escape was pressed
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+	{
+		grid->gameOver = true;
+		restart = false;
 		glfwSetWindowShouldClose(window, GL_TRUE);
+	}
 
 	// World Orientation keys
 	float worldRotationSpeed = 15.0f * deltaTime;
@@ -444,6 +462,5 @@ void moveEnemies(std::vector<GridEntity>& enemies)
 			if (enemyPosition.x < pacmanPosition.x)
 				grid->move(&enemies[i], RIGHT);
 		}
-
 	}
 }
