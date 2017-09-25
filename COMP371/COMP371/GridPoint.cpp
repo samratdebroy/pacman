@@ -40,7 +40,10 @@ void GridPoint::attach(GridEntity* entity)
 	if(hasWall())
 	{
 		// If the current gridPoint has a wall already, don't attach anything
-	}else
+	}else if(entity->type == ENEMY && hasEnemy()){
+		// If there's already an enemy and a new one is trying to attach, don't let it
+	}
+	else
 	{
 		// Add the entity to the current grid point
 		switch (entity->type)

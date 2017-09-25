@@ -141,7 +141,7 @@ int main()
 
 	triangle_scale = glm::vec3(0.5f); //set to 0.03f for pacman model
 
-									  // Terrain Plain
+	// Terrain Plain
 	Terrain terrain(gridWidth, gridHeight);
 	Shader terrainShader("shaders/terrain.vert", "shaders/terrain.frag");
 
@@ -312,9 +312,9 @@ void processInput(GLFWwindow *window)
 
 	// Scale up and Down
 	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-		triangle_scale += 0.01 * deltaTime;
+		triangle_scale += 0.1 * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-		triangle_scale -= 0.01 * deltaTime;
+		triangle_scale -= 0.1 * deltaTime;
 
 	// Change Render Mode
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
@@ -404,6 +404,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void setupGridEntities(int numOfConsumables, int numOfEnemies)
 {
+	
 	pacman = new GridEntity ("models/teapot.obj", PACMAN);
 
 	for (int i = 0; i < numOfConsumables; i++)
