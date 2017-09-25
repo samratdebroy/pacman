@@ -405,7 +405,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 void setupGridEntities(int numOfConsumables, int numOfEnemies)
 {
 	
-	pacman = new GridEntity ("models/teapot.obj", PACMAN);
+	pacman = new GridEntity ("models/teapot.obj", PACMAN); // Memory Leak not managed
 
 	for (int i = 0; i < numOfConsumables; i++)
 	{
